@@ -1,0 +1,233 @@
+@startuml SolucionFarmacia_UML_EstadoActual
+title Diagrama UML - Estado Actual del Código
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam ranksep 70
+skinparam nodesep 55
+skinparam padding 10
+
+' =========================================================
+' ENUMS
+' =========================================================
+enum MaterialEnvase {
+    Vidrio
+    Plastico
+}
+
+enum TipoRelleno {
+    Gel
+    Polvo
+}
+
+' =========================================================
+' INTERFACES
+' =========================================================
+interface IDescuento {
+    +CalcularDescuento(precio: decimal): decimal
+}
+
+interface IServicioNotificacion {
+    +EnviarNotificacion(mensaje: string): void
+}
+
+' =========================================================
+' CLASES 
+' =========================================================
+abstract class Persona {
+    +Nombre: string
+    +Cedula: string
+    +Telefono: string
+    +Correo: string
+    #Persona(nombre: string, cedula: string, telefono: string, correo: string)
+}
+
+class Cliente {
+    +Puntos: int
+    +Cliente(nombre: string, cedula: string, telefono: string, correo: string)
+    +AcumularPuntos(puntos: int): void
+}
+
+class Usuario {
+    +UserName: string
+    +Password: string
+    +Usuario(nombre: string, cedula: string, telefono: string, correo: string, userName: string, password: string)
+}
+
+abstract class Producto {
+    +Nombre: string
+    +Precio: decimal
+    +Stock: int
+    +StockMinimo: int
+    +FechaVencimiento: DateTime
+    #Producto(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime)
+    +MostrarInformacion(): void
+}
+
+class Medicamento {
+    +Laboratorio: Laboratorio
+    +Medicamento(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio)
+}
+
+class MedicamentoCapsula {
+    +TipoRelleno: TipoRelleno
+    +MedicamentoCapsula(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio, tipoRelleno: TipoRelleno)
+}
+
+class MedicamentoLiquido {
+    +MaterialEnvase: MaterialEnvase
+    +Mililitros: int
+    +MedicamentoLiquido(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio, materialEnvase: MaterialEnvase, mililitros: int)
+}
+
+class Laboratorio {
+    +Nombre: string
+    +Direccion: string
+    +Telefono: string
+    +Laboratorio(nombre: string, direccion: string, telefono: string)
+}
+
+class Movimiento {
+    +Fecha: DateTime
+    +Cantidad: int
+    +Tipo: string
+    +Producto: Producto
+    +Movimiento(fecha: DateTime, cantidad: int, tipo: string, producto: Producto)
+}
+
+' =========================================================
+' EVENTOS
+' =========================================================
+class EventoMovimiento {
+    +MovimientoRegistrado: DelegadoMovimiento?
+    +Disparar(tipo: string): void
+}
+
+class EventoPuntos {
+    +PuntosAcumulados: DelegadoPuntos?
+    +Disparar(cliente: string, puntos: int): void
+}
+
+class EventoStockMinimo {
+    +StockMinimo: DelegadoStock?
+    +Disparar(producto: Producto): void
+}
+
+class EventoVencimiento {
+    +Vencimiento: DelegadoVencimiento?
+    +Disparar(producto: Producto): void
+}
+
+' =========================================================
+' SERVICIOS
+' =========================================================
+class ServicioCliente {
+    -clientes: List<Cliente>
+    +EventoPuntos: EventoPuntos
+    +ServicioCliente()
+    +AgregarCliente(cliente: Cliente): void
+    +ObtenerClientes(): List<Cliente>
+    +AcumularPuntos(cliente: Cliente, puntos: int): void
+    +Cargar(ruta: string): string
+}
+
+class ServicioProducto {
+    -productos: List<Producto>
+    +EventoStock: EventoStockMinimo
+    +EventoVencimiento: EventoVencimiento
+    +ServicioProducto()
+    +AgregarProducto(producto: Producto): string
+    +ObtenerProductos(): List<Producto>
+    +VerificarStock(): void
+    +VerificarVencimiento(): void
+    +CargarDesdeArchivo(ruta: string): string
+}
+
+class ServicioMovimiento {
+    -movimientos: List<Movimiento>
+    +EventoMovimiento: EventoMovimiento
+    +ServicioMovimiento()
+    +RegistrarMovimiento(movimiento: Movimiento): void
+    +ObtenerMovimientos(): List<Movimiento>
+}
+
+class ServicioUsuario {
+    -usuarios: List<Usuario>
+    +ServicioUsuario()
+    +AgregarUsuario(usuario: Usuario): void
+    +Login(user: string, password: string): bool
+    +Cargar(ruta: string): string
+}
+
+class ServicioDescuento {
+    +CalcularDescuento(precio: decimal): decimal
+}
+
+class ServicioNotificacion {
+    +EnviarNotificacion(mensaje: string): void
+}
+
+' =========================================================
+' ASPECTOS
+' =========================================================
+class AspectoAutenticacion {
+    {static} +Login(usuarios: List<Usuario>, user: string, password: string): bool
+}
+
+class AspectoValidacion {
+    {static} +ValidarCliente(cliente: Cliente): string
+    {static} +ValidarProducto(producto: Producto): string
+}
+
+' =========================================================
+' RELACIONES DE HERENCIA
+' =========================================================
+Persona <|-- Cliente
+Persona <|-- Usuario
+Producto <|-- Medicamento
+Medicamento <|-- MedicamentoCapsula
+Medicamento <|-- MedicamentoLiquido
+
+' =========================================================
+' REALIZACIÓN DE INTERFACES
+' =========================================================
+IDescuento <|.. ServicioDescuento
+IServicioNotificacion <|.. ServicioNotificacion
+
+' =========================================================
+' ASOCIACIONES / COMPOSICIÓN / AGREGACIÓN
+' =========================================================
+Medicamento --> "1" Laboratorio : Laboratorio
+Movimiento --> "1" Producto : Producto
+MedicamentoCapsula --> TipoRelleno : TipoRelleno
+MedicamentoLiquido --> MaterialEnvase : MaterialEnvase
+
+ServicioCliente o-- "0..*" Cliente : clientes
+ServicioCliente *-- "1" EventoPuntos : EventoPuntos
+
+ServicioProducto o-- "0..*" Producto : productos
+ServicioProducto *-- "1" EventoStockMinimo : EventoStock
+ServicioProducto *-- "1" EventoVencimiento : EventoVencimiento
+
+ServicioMovimiento o-- "0..*" Movimiento : movimientos
+ServicioMovimiento *-- "1" EventoMovimiento : EventoMovimiento
+
+ServicioUsuario o-- "0..*" Usuario : usuarios
+
+' =========================================================
+' DEPENDENCIAS
+' =========================================================
+ServicioUsuario ..> AspectoAutenticacion : usa
+AspectoAutenticacion ..> Usuario : usa
+
+AspectoValidacion ..> Cliente : usa
+AspectoValidacion ..> Producto : usa
+
+EventoStockMinimo ..> Producto : usa
+EventoVencimiento ..> Producto : usa
+
+@enduml
