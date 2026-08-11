@@ -1,0 +1,412 @@
+@startuml SolucionFarmacia_UML_TOBE
+title Diagrama UML - Arquitectura TO-BE (Fase 3) - fiel al código SolucionFarmacia V2
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam classFontStyle bold
+skinparam linetype ortho
+skinparam ranksep 75
+skinparam nodesep 50
+skinparam padding 10
+
+' Por defecto (elementos conservados del AS-IS, sin intervención): blanco y negro clásico
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    ArrowColor Black
+}
+skinparam interface {
+    BackgroundColor White
+    BorderColor Black
+}
+skinparam enum {
+    BackgroundColor White
+    BorderColor Black
+}
+skinparam note {
+    BackgroundColor #FFFDE7
+    BorderColor #BDBDBD
+}
+
+' =========================================================
+' LEYENDA
+' =========================================================
+legend top left
+|= Color |= Significado |
+|<back:#FFFFFF>   </back>| Negro / blanco — se conserva del diseño original (AS-IS), sin intervención |
+|<back:#FDE7D9>   </back>| SRP — Principio de Responsabilidad Única |
+|<back:#E4F6EC>   </back>| OCP — Principio Abierto/Cerrado |
+|<back:#E7F0FD>   </back>| LSP — Principio de Sustitución de Liskov |
+|<back:#F1E6FA>   </back>| DIP — Principio de Inversión de Dependencias |
+|<back:#FDE6EE>   </back>| ISP — Principio de Segregación de Interfaces |
+Cuando un elemento aplica dos principios a la vez, se usa el color del
+principio dominante y se listan ambos como estereotipos «Principio».
+endlegend
+
+' =========================================================
+' ENUMS (conservados)
+' =========================================================
+enum MaterialEnvase {
+    Vidrio
+    Plastico
+}
+
+enum TipoRelleno {
+    Gel
+    Polvo
+}
+
+' =========================================================
+' INTERFACES CONSERVADAS SIN USO ACTIVO (negro) - código muerto igual que en AS-IS
+' =========================================================
+interface IDescuento {
+    +CalcularDescuento(precio: decimal): decimal
+}
+
+interface IServicioNotificacion {
+    +EnviarNotificacion(mensaje: string): void
+}
+
+' =========================================================
+' INTERFACES NUEVAS - DIP + ISP (repositorios)
+' =========================================================
+interface IRepositorioProducto <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +Existe(ruta: string): bool
+    +LeerProductos(ruta: string): IEnumerable<Producto>
+}
+
+interface IRepositorioCliente <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +Existe(ruta: string): bool
+    +LeerClientes(ruta: string): IEnumerable<Cliente>
+}
+
+interface IRepositorioUsuario <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +Existe(ruta: string): bool
+    +LeerUsuarios(ruta: string): IEnumerable<Usuario>
+}
+
+' =========================================================
+' INTERFACES NUEVAS - DIP + ISP (notificadores)
+' =========================================================
+interface INotificadorStockMinimo <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +NotificarStockMinimo(producto: Producto): void
+}
+
+interface INotificadorVencimiento <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +NotificarVencimiento(producto: Producto): void
+}
+
+interface INotificadorPuntos <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +NotificarPuntos(cliente: string, puntos: int): void
+}
+
+interface INotificadorMovimiento <<DIP>><<ISP>> #F1E6FA;line:7B2CBF {
+    +NotificarMovimiento(tipo: string): void
+}
+
+' =========================================================
+' DOMINIO CONSERVADO (negro)
+' =========================================================
+abstract class Persona {
+    +Nombre: string
+    +Cedula: string
+    +Telefono: string
+    +Correo: string
+    #Persona(nombre: string, cedula: string, telefono: string, correo: string)
+}
+
+class Cliente {
+    +Puntos: int
+    +Cliente(nombre: string, cedula: string, telefono: string, correo: string)
+    +AcumularPuntos(puntos: int): void
+}
+
+class Usuario {
+    +UserName: string
+    +Password: string
+    +Usuario(nombre: string, cedula: string, telefono: string, correo: string, userName: string, password: string)
+}
+
+abstract class Producto {
+    +Nombre: string
+    +Precio: decimal
+    +Stock: int
+    +StockMinimo: int
+    +FechaVencimiento: DateTime
+    #Producto(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime)
+    +MostrarInformacion(): void
+}
+
+class Medicamento {
+    +Laboratorio: Laboratorio
+    +Medicamento(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio)
+}
+
+class MedicamentoCapsula {
+    +TipoRelleno: TipoRelleno
+    +MedicamentoCapsula(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio, tipoRelleno: TipoRelleno)
+}
+
+class MedicamentoLiquido {
+    +MaterialEnvase: MaterialEnvase
+    +Mililitros: int
+    +MedicamentoLiquido(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, laboratorio: Laboratorio, materialEnvase: MaterialEnvase, mililitros: int)
+}
+
+class Laboratorio {
+    +Nombre: string
+    +Direccion: string
+    +Telefono: string
+    +Laboratorio(nombre: string, direccion: string, telefono: string)
+}
+
+class Movimiento {
+    +Fecha: DateTime
+    +Cantidad: int
+    +Tipo: string
+    +Producto: Producto
+    +Movimiento(fecha: DateTime, cantidad: int, tipo: string, producto: Producto)
+}
+
+' =========================================================
+' NUEVAS ESPECIALIZACIONES DE PRODUCTO (SC-1) - OCP + LSP
+' =========================================================
+class Cosmetico <<OCP>><<LSP>> #E4F6EC;line:2A9D8F {
+    +Marca: string
+    +Cosmetico(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, marca: string)
+}
+
+class Comestible <<OCP>><<LSP>> #E4F6EC;line:2A9D8F {
+    +Calorias: int
+    +Comestible(nombre: string, precio: decimal, stock: int, stockMinimo: int, fechaVencimiento: DateTime, calorias: int)
+}
+
+' =========================================================
+' EVENTOS - DIP (ahora implementan su interfaz de notificador,
+' conservando intacto el método Disparar y el delegado original)
+' =========================================================
+class EventoMovimiento <<DIP>> #F1E6FA;line:7B2CBF {
+    +MovimientoRegistrado: DelegadoMovimiento?
+    +Disparar(tipo: string): void
+    +NotificarMovimiento(tipo: string): void
+}
+
+class EventoPuntos <<DIP>> #F1E6FA;line:7B2CBF {
+    +PuntosAcumulados: DelegadoPuntos?
+    +Disparar(cliente: string, puntos: int): void
+    +NotificarPuntos(cliente: string, puntos: int): void
+}
+
+class EventoStockMinimo <<DIP>> #F1E6FA;line:7B2CBF {
+    +StockMinimo: DelegadoStock?
+    +Disparar(producto: Producto): void
+    +NotificarStockMinimo(producto: Producto): void
+}
+
+class EventoVencimiento <<DIP>> #F1E6FA;line:7B2CBF {
+    +Vencimiento: DelegadoVencimiento?
+    +Disparar(producto: Producto): void
+    +NotificarVencimiento(producto: Producto): void
+}
+
+' =========================================================
+' SERVICIOS - SRP + DIP (pierden acceso directo a archivos
+' y ya no crean sus eventos con "new")
+' =========================================================
+class ServicioProducto <<SRP>><<DIP>> #FDE7D9;line:E76F51 {
+    -productos: List<Producto>
+    -repositorio: IRepositorioProducto
+    -notificadorStock: INotificadorStockMinimo
+    -notificadorVencimiento: INotificadorVencimiento
+    +ServicioProducto(repositorio: IRepositorioProducto, notificadorStock: INotificadorStockMinimo, notificadorVencimiento: INotificadorVencimiento)
+    +AgregarProducto(producto: Producto): string
+    +ObtenerProductos(): List<Producto>
+    +VerificarStock(): void
+    +VerificarVencimiento(): void
+    +CargarDesdeArchivo(ruta: string): string
+    +CargarDesdeArchivo(repo: IRepositorioProducto, ruta: string): string
+}
+
+class ServicioCliente <<SRP>><<DIP>> #FDE7D9;line:E76F51 {
+    -clientes: List<Cliente>
+    -repositorio: IRepositorioCliente
+    -notificadorPuntos: INotificadorPuntos
+    +ServicioCliente(repositorio: IRepositorioCliente, notificadorPuntos: INotificadorPuntos)
+    +AgregarCliente(cliente: Cliente): void
+    +ObtenerClientes(): List<Cliente>
+    +AcumularPuntos(cliente: Cliente, puntos: int): void
+    +Cargar(ruta: string): string
+}
+
+class ServicioUsuario <<SRP>><<DIP>> #FDE7D9;line:E76F51 {
+    -usuarios: List<Usuario>
+    -repositorio: IRepositorioUsuario
+    +ServicioUsuario(repositorio: IRepositorioUsuario)
+    +AgregarUsuario(usuario: Usuario): void
+    +ObtenerUsuarios(): List<Usuario>
+    +Cargar(ruta: string): string
+}
+
+class ServicioMovimiento <<DIP>> #F1E6FA;line:7B2CBF {
+    -movimientos: List<Movimiento>
+    -notificadorMovimiento: INotificadorMovimiento
+    +ServicioMovimiento(notificadorMovimiento: INotificadorMovimiento)
+    +RegistrarMovimiento(movimiento: Movimiento): void
+    +ObtenerMovimientos(): List<Movimiento>
+}
+
+' =========================================================
+' NUEVA CLASE - SRP (extraída de ServicioUsuario)
+' =========================================================
+class ServicioAutenticacion <<SRP>> #FDE7D9;line:E76F51 {
+    -usuarios: List<Usuario>
+    +ServicioAutenticacion(usuarios: List<Usuario>)
+    +Login(user: string, password: string): bool
+}
+
+' =========================================================
+' SERVICIOS / INFRAESTRUCTURA CONSERVADOS SIN USO ACTIVO (negro)
+' — ProductoFactory sigue sin invocarse en ningún punto real
+' =========================================================
+class ServicioDescuento {
+    +CalcularDescuento(precio: decimal): decimal
+}
+
+class ServicioNotificacion {
+    +EnviarNotificacion(mensaje: string): void
+}
+
+class ProductoFactory {
+    {static} +CrearCapsula(nombre: string, precio: decimal, stock: int, laboratorio: Laboratorio): MedicamentoCapsula
+    {static} +CrearLiquido(nombre: string, precio: decimal, stock: int, laboratorio: Laboratorio): MedicamentoLiquido
+}
+
+' =========================================================
+' INFRAESTRUCTURA NUEVA - OCP + DIP
+' (una clase de repositorio por familia de producto: así se
+' extiende sin tocar ServicioProducto)
+' =========================================================
+class RepositorioMedicamentoArchivo <<OCP>><<DIP>> #E4F6EC;line:2A9D8F {
+    +Existe(ruta: string): bool
+    +LeerProductos(ruta: string): IEnumerable<Producto>
+}
+
+class RepositorioCosmeticoArchivo <<OCP>><<DIP>> #E4F6EC;line:2A9D8F {
+    +Existe(ruta: string): bool
+    +LeerProductos(ruta: string): IEnumerable<Producto>
+}
+
+class RepositorioComestibleArchivo <<OCP>><<DIP>> #E4F6EC;line:2A9D8F {
+    +Existe(ruta: string): bool
+    +LeerProductos(ruta: string): IEnumerable<Producto>
+}
+
+' =========================================================
+' INFRAESTRUCTURA NUEVA - DIP (repositorios de cliente / usuario)
+' =========================================================
+class RepositorioClienteArchivo <<DIP>> #F1E6FA;line:7B2CBF {
+    +Existe(ruta: string): bool
+    +LeerClientes(ruta: string): IEnumerable<Cliente>
+}
+
+class RepositorioUsuarioArchivo <<DIP>> #F1E6FA;line:7B2CBF {
+    +Existe(ruta: string): bool
+    +LeerUsuarios(ruta: string): IEnumerable<Usuario>
+}
+
+' =========================================================
+' ASPECTOS CONSERVADOS (negro) - sin cambios
+' =========================================================
+class AspectoAutenticacion {
+    {static} +Login(usuarios: List<Usuario>, user: string, password: string): bool
+}
+
+class AspectoValidacion {
+    {static} +ValidarCliente(cliente: Cliente): string
+    {static} +ValidarProducto(producto: Producto): string
+}
+
+' =========================================================
+' COMPOSITION ROOT - DIP
+' =========================================================
+class Program <<Composition Root>><<DIP>> #F1E6FA;line:7B2CBF {
+    +Main(): void
+}
+
+
+
+' =========================================================
+' HERENCIA CONSERVADA (negro)
+' =========================================================
+Persona <|-- Cliente
+Persona <|-- Usuario
+Producto <|-- Medicamento
+Medicamento <|-- MedicamentoCapsula
+Medicamento <|-- MedicamentoLiquido
+
+' =========================================================
+' HERENCIA NUEVA (OCP)
+' =========================================================
+Producto <|-[#2A9D8F]- Cosmetico
+Producto <|-[#2A9D8F]- Comestible
+
+' =========================================================
+' REALIZACIÓN DE INTERFACES CONSERVADA (negro, sin uso)
+' =========================================================
+IDescuento <|.. ServicioDescuento
+IServicioNotificacion <|.. ServicioNotificacion
+
+' =========================================================
+' REALIZACIÓN DE INTERFACES NUEVA
+' =========================================================
+IRepositorioProducto <|.[#2A9D8F]. RepositorioMedicamentoArchivo
+IRepositorioProducto <|.[#2A9D8F]. RepositorioCosmeticoArchivo
+IRepositorioProducto <|.[#2A9D8F]. RepositorioComestibleArchivo
+IRepositorioCliente <|.[#7B2CBF]. RepositorioClienteArchivo
+IRepositorioUsuario <|.[#7B2CBF]. RepositorioUsuarioArchivo
+INotificadorStockMinimo <|.[#7B2CBF]. EventoStockMinimo
+INotificadorVencimiento <|.[#7B2CBF]. EventoVencimiento
+INotificadorPuntos <|.[#7B2CBF]. EventoPuntos
+INotificadorMovimiento <|.[#7B2CBF]. EventoMovimiento
+
+' =========================================================
+' ASOCIACIONES CONSERVADAS (negro)
+' =========================================================
+Medicamento --> "1" Laboratorio : Laboratorio
+Movimiento --> "1" Producto : Producto
+MedicamentoCapsula --> TipoRelleno : TipoRelleno
+MedicamentoLiquido --> MaterialEnvase : MaterialEnvase
+
+ServicioCliente o-- "0..*" Cliente : clientes
+ServicioProducto o-- "0..*" Producto : productos
+ServicioMovimiento o-- "0..*" Movimiento : movimientos
+ServicioUsuario o-- "0..*" Usuario : usuarios
+
+' =========================================================
+' DEPENDENCIAS POR INYECCIÓN DE CONSTRUCTOR (DIP, nuevas)
+' =========================================================
+ServicioProducto -[#7B2CBF]-> IRepositorioProducto
+ServicioProducto -[#7B2CBF]-> INotificadorStockMinimo
+ServicioProducto -[#7B2CBF]-> INotificadorVencimiento
+ServicioCliente -[#7B2CBF]-> IRepositorioCliente
+ServicioCliente -[#7B2CBF]-> INotificadorPuntos
+ServicioUsuario -[#7B2CBF]-> IRepositorioUsuario
+ServicioMovimiento -[#7B2CBF]-> INotificadorMovimiento
+
+' =========================================================
+' NUEVA DEPENDENCIA (SRP) - autenticación se extrae de ServicioUsuario
+' =========================================================
+ServicioAutenticacion -[#E76F51]-> AspectoAutenticacion : usa
+
+' =========================================================
+' DEPENDENCIAS CONSERVADAS (negro)
+' =========================================================
+AspectoAutenticacion ..> Usuario : usa
+AspectoValidacion ..> Cliente : usa
+AspectoValidacion ..> Producto : usa
+EventoStockMinimo ..> Producto : usa
+EventoVencimiento ..> Producto : usa
+
+@enduml
